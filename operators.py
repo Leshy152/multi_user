@@ -400,7 +400,7 @@ class SessionHostOperator(bpy.types.Operator):
             logging.info(f"Hosting on {bind_ip}:{settings.host_port} | Advertised: {advertised_ip}")
 
             # Запуск сервера
-            porcelain.serve(
+            porcelain.server(
                 repo,
                 bind_ip,
                 settings.host_port,
@@ -434,6 +434,7 @@ class SessionHostOperator(bpy.types.Operator):
         setup_timer()
 
         return {"FINISHED"}
+
     def execute(self, context):
         global deleyables
 
