@@ -390,15 +390,25 @@ class SessionHostOperator(bpy.types.Operator):
 
         try:
             # === ИСПРАВЛЕНИЯ ДЛЯ ВНЕШНЕГО IP ===
-            bind_ip = "0.0.0.0"                    # Слушаем все интерфейсы
+            bind_ip = "0.0.0.0"                    # Слушаем все интерфейсы (обязательно!)
             advertised_ip = settings.host_ip.strip()
 
+            # Если внешний IP не указан — используем локальный
             if not advertised_ip or advertised_ip in ("0.0.0.0", "127.0.0.1"):
                 advertised_ip = environment.get_ip()
 
             logging.info(f"Hosting on {bind_ip}:{settings.host_port} | Advertised: {advertised_ip}")
 
-            # Правильный способ запуска хоста в этой версии
+            # Правильный запуск сервера (в этой версии replication)
+            porcelain.server(
+                repo,
+                bind_ip,
+                settings.host_port,
+                password=server_pass,
+                admin_password=admin_pass
+            )
+
+            # Добавляем remote для клиентов
             porcelain.remote_add(
                 repo,
                 'origin',
@@ -407,6 +417,7 @@ class SessionHostOperator(bpy.types.Operator):
                 server_password=server_pass,
                 admin_password=admin_pass)
 
+            # Подключаемся сами как хост
             session.connect(
                 repository=repo,
                 timeout=settings.connection_timeout,
