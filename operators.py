@@ -389,26 +389,16 @@ class SessionHostOperator(bpy.types.Operator):
             username=settings.username)
 
         try:
-            # === ИСПРАВЛЕНИЯ ДЛЯ ВНЕШНЕГО ПОДКЛЮЧЕНИЯ ===
-            bind_ip = "0.0.0.0"                    # Слушаем все интерфейсы (важно!)
+            # === ИСПРАВЛЕНИЯ ДЛЯ ВНЕШНЕГО IP ===
+            bind_ip = "0.0.0.0"                    # Слушаем все интерфейсы
             advertised_ip = settings.host_ip.strip()
 
-            # Если не указан внешний IP — берём локальный автоматически
             if not advertised_ip or advertised_ip in ("0.0.0.0", "127.0.0.1"):
                 advertised_ip = environment.get_ip()
 
             logging.info(f"Hosting on {bind_ip}:{settings.host_port} | Advertised: {advertised_ip}")
 
-            # Запуск сервера
-            porcelain.server(
-                repo,
-                bind_ip,
-                settings.host_port,
-                password=server_pass,
-                admin_password=admin_pass
-            )
-
-            # Добавляем remote
+            # Правильный способ запуска хоста в этой версии
             porcelain.remote_add(
                 repo,
                 'origin',
@@ -417,7 +407,6 @@ class SessionHostOperator(bpy.types.Operator):
                 server_password=server_pass,
                 admin_password=admin_pass)
 
-            # Подключаемся сами как хост-клиент
             session.connect(
                 repository=repo,
                 timeout=settings.connection_timeout,
@@ -425,6 +414,9 @@ class SessionHostOperator(bpy.types.Operator):
                 admin_password=admin_pass,
                 subprocess_python_args=bpy.app.python_args,
             )
+
+            # Помечаем как хост
+            context.window_manager.session.is_host = True
 
         except Exception as e:
             self.report({'ERROR'}, str(e))
