@@ -361,15 +361,6 @@ class SessionJoinOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SessionHostOperator(bpy.types.Operator):
-    bl_idname = "wm.session_host"
-    bl_label = "host"
-    bl_description = "host server"
-
-    @classmethod
-    def poll(cls, context):
-        return True
-
     def execute(self, context):
         global deleyables
 
@@ -385,61 +376,55 @@ class SessionHostOperator(bpy.types.Operator):
 
         bpy_protocol = bl_types.get_data_translation_protocol()
 
-        # Check if supported_datablocks are up to date before starting the
-        # the session
-        for dcc_type_id in bpy_protocol.implementations.keys():
-            if dcc_type_id not in settings.supported_datablocks:
-                logging.info(f"{dcc_type_id} not found, \
-                             regenerate type settings...")
-                settings.generate_supported_types()
-
         repo = Repository(
             rdp=bpy_protocol,
-            username=settings.username
-        )
-
-        # Host a session
-        if settings.init_method == 'EMPTY':
-            utils.clean_scene()
+            username=settings.username)
 
         try:
-            # Init repository
-            for scene in bpy.data.scenes:
-                porcelain.add(repo, scene)
+            # L390-400: Исправления для внешнего IP
+            bind_ip = environment.get_bind_ip()          # "0.0.0.0" — важно!
+            advertised_ip = settings.host_ip.strip()
 
+            # Если пользователь не указал внешний IP — берём локальный
+            if not advertised_ip or advertised_ip in ("0.0.0.0", "127.0.0.1"):
+                advertised_ip = environment.get_ip()
+
+            logging.info(f"Hosting on bind={bind_ip}:{settings.host_port} | Advertised to clients: {advertised_ip}")
+
+            # Запуск сервера
+            porcelain.serve(
+                repo,
+                bind_ip,
+                settings.host_port,
+                password=server_pass,
+                admin_password=admin_pass
+            )
+
+            # Добавляем remote для самого хоста
             porcelain.remote_add(
                 repo,
                 'origin',
-                settings.host_ip,
+                advertised_ip,
                 settings.host_port,
                 server_password=server_pass,
                 admin_password=admin_pass)
-            session.host(
+
+            session.connect(
                 repository=repo,
-                remote='origin',
                 timeout=settings.connection_timeout,
                 server_password=server_pass,
                 admin_password=admin_pass,
-                cache_directory=settings.cache_directory,
-                server_log_level=logging.getLevelName(
-                    logging.getLogger().level),
                 subprocess_python_args=bpy.app.python_args,
             )
+
         except Exception as e:
-            traceback.print_exc()
-            bpy.ops.wm.session_notify_user(
-                'INVOKE_DEFAULT',
-                icon='ERROR',
-                title="Session cancelled",
-                message=f"{e}"
-            )
+            self.report({'ERROR'}, str(e))
+            logging.error(str(e))
             return {"CANCELLED"}
 
-        # Background client updates service
         setup_timer()
 
         return {"FINISHED"}
-
 
 class SessionInitOperator(bpy.types.Operator):
     bl_idname = "wm.session_init"

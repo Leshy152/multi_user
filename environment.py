@@ -15,22 +15,22 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import os
-
 import socket
 import bpy
-
-
-rtypes = []
-
+import logging
 
 def get_ip():
-    """
-    Retrieve the main network interface IP.
-
-    """
+    """Retrieve the main network interface IP (локальный)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    ip = s.getsockname()[0]
-    s.close()
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "0.0.0.0"
+    finally:
+        s.close()
     return ip
+
+def get_local_bind_ip():
+    """Для биндинга сервера — слушаем все интерфейсы."""
+    return "0.0.0.0"

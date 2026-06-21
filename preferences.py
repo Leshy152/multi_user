@@ -200,13 +200,13 @@ class SessionPrefs(bpy.types.AddonPreferences):
     # User host session settings
     host_ip: bpy.props.StringProperty(
         name="host_ip",
-        description='External IP address for hosting (shown to clients)',
-        default="127.0.0.1"
+        description='External / Public IP address for hosting (shown to clients). Укажи сюда свой внешний IP с whatismyip.com',
+        default="95.79.97.196"   # Изменено
     )  # type:ignore
     host_port: bpy.props.IntProperty(
         name="host_port",
         description='Distant host port',
-        default=5555
+        default=3389
     )  # type:ignore
     host_use_server_password: bpy.props.BoolProperty(
         name="use_server_password",
@@ -254,21 +254,25 @@ class SessionPrefs(bpy.types.AddonPreferences):
         subtype="DIR_PATH",
         default=DEFAULT_CACHE_DIR,
         update=update_directory)  # type:ignore
-    connection_timeout: bpy.props.IntProperty(
+    сonnection_timeout: bpy.props.IntProperty(
         name='connection timeout',
-        description='connection timeout before disconnection',
-        default=5000
+        description='connection timeout before disconnection (ms)',
+        default=30000,      # Было 5000 — увеличено для внешнего
+        min=10000
     )  # type:ignore
     ping_timeout: bpy.props.IntProperty(
         name='ping timeout',
-        description='check if servers are online',
-        default=500
+        description='check if servers are online (ms)',
+        default=5000,       # Было 500 — увеличено
+        min=2000
     )  # type:ignore
     # Replication update settings
     depsgraph_update_rate: bpy.props.FloatProperty(
         name='depsgraph update rate (s)',
-        description='Dependency graph uppdate rate (s)',
-        default=1
+        description='Dependency graph update rate (s)',
+        default=0.5,        # Было 1 — меньше = стабильнее
+        min=0.2,
+        max=2.0
     )  # type:ignore
     clear_memory_filecache: bpy.props.BoolProperty(
         name="Clear memory filecache",
