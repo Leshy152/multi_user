@@ -434,7 +434,6 @@ class SessionHostOperator(bpy.types.Operator):
         setup_timer()
 
         return {"FINISHED"}
-        
     def execute(self, context):
         global deleyables
 
