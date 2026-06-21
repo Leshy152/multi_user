@@ -17,20 +17,15 @@
 
 import socket
 import bpy
-import logging
 
 def get_ip():
-    """Retrieve the main network interface IP (локальный)."""
+    """Retrieve the main network interface IP."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except Exception:
-        ip = "0.0.0.0"
+        ip = "127.0.0.1"
     finally:
         s.close()
     return ip
-
-def get_local_bind_ip():
-    """Для биндинга сервера — слушаем все интерфейсы."""
-    return "0.0.0.0"

@@ -381,11 +381,13 @@ class SessionJoinOperator(bpy.types.Operator):
             username=settings.username)
 
         try:
-            # L390-400: Исправления для внешнего IP
-            bind_ip = environment.get_bind_ip()          # "0.0.0.0" — важно!
+            # === ИСПРАВЛЕНИЯ ДЛЯ ВНЕШНЕГО IP ===
+            from . import environment  # на всякий случай
+
+            bind_ip = "0.0.0.0"  # Слушаем все интерфейсы — обязательно для внешнего подключения
             advertised_ip = settings.host_ip.strip()
 
-            # Если пользователь не указал внешний IP — берём локальный
+            # Если host_ip не указан — используем локальный
             if not advertised_ip or advertised_ip in ("0.0.0.0", "127.0.0.1"):
                 advertised_ip = environment.get_ip()
 
@@ -400,7 +402,7 @@ class SessionJoinOperator(bpy.types.Operator):
                 admin_password=admin_pass
             )
 
-            # Добавляем remote для самого хоста
+            # Добавляем remote
             porcelain.remote_add(
                 repo,
                 'origin',
@@ -409,6 +411,7 @@ class SessionJoinOperator(bpy.types.Operator):
                 server_password=server_pass,
                 admin_password=admin_pass)
 
+            # Подключаемся как клиент-хост
             session.connect(
                 repository=repo,
                 timeout=settings.connection_timeout,
@@ -1260,7 +1263,6 @@ def menu_func_export(self, context):
 
 classes = (
     SessionJoinOperator,
-    SessionHostOperator,
     SessionStopOperator,
     SessionPropertyRemoveOperator,
     SessionSnapUserOperator,
