@@ -360,7 +360,81 @@ class SessionJoinOperator(bpy.types.Operator):
 
         return {"FINISHED"}
 
+class SessionHostOperator(bpy.types.Operator):
+    bl_idname = "wm.session_host"
+    bl_label = "host"
+    bl_description = "host server"
 
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        global deleyables
+
+        settings = utils.get_preferences()
+        users = bpy.data.window_managers['WinMan'].online_users
+        admin_pass = (settings.host_admin_password or None) if settings.host_use_admin_password else None
+        server_pass = settings.host_server_password if settings.host_use_server_password else ''
+
+        users.clear()
+        deleyables.clear()
+
+        setup_logging()
+
+        bpy_protocol = bl_types.get_data_translation_protocol()
+
+        repo = Repository(
+            rdp=bpy_protocol,
+            username=settings.username)
+
+        try:
+            # === ИСПРАВЛЕНИЯ ДЛЯ ВНЕШНЕГО ПОДКЛЮЧЕНИЯ ===
+            bind_ip = "0.0.0.0"                    # Слушаем все интерфейсы (важно!)
+            advertised_ip = settings.host_ip.strip()
+
+            # Если не указан внешний IP — берём локальный автоматически
+            if not advertised_ip or advertised_ip in ("0.0.0.0", "127.0.0.1"):
+                advertised_ip = environment.get_ip()
+
+            logging.info(f"Hosting on {bind_ip}:{settings.host_port} | Advertised: {advertised_ip}")
+
+            # Запуск сервера
+            porcelain.serve(
+                repo,
+                bind_ip,
+                settings.host_port,
+                password=server_pass,
+                admin_password=admin_pass
+            )
+
+            # Добавляем remote
+            porcelain.remote_add(
+                repo,
+                'origin',
+                advertised_ip,
+                settings.host_port,
+                server_password=server_pass,
+                admin_password=admin_pass)
+
+            # Подключаемся сами как хост-клиент
+            session.connect(
+                repository=repo,
+                timeout=settings.connection_timeout,
+                server_password=server_pass,
+                admin_password=admin_pass,
+                subprocess_python_args=bpy.app.python_args,
+            )
+
+        except Exception as e:
+            self.report({'ERROR'}, str(e))
+            logging.error(str(e))
+            return {"CANCELLED"}
+
+        setup_timer()
+
+        return {"FINISHED"}
+        
     def execute(self, context):
         global deleyables
 
@@ -1276,6 +1350,7 @@ classes = (
     SessionNotifyOperator,
     SessionSaveBackupOperator,
     SessionLoadSaveOperator,
+    SessionHostOperator,
     SESSION_PT_ImportUser,
     SessionStopAutoSaveOperator,
     SessionPurgeOperator,
